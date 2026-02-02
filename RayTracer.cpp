@@ -6,6 +6,7 @@
 #include "scene/light.h"
 #include "scene/material.h"
 #include "scene/ray.h"
+#include "scene/cubeMap.h"
 
 #include "parser/JsonParser.h"
 #include "parser/Parser.h"
@@ -102,8 +103,8 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
     glm::dvec3 intersect = r.at(i.getT()); // distance to first intersection aka first object, t in pseudo
     t = i.getT();
-    glm::dvec3 N = glm::normalize(i.getN()); // normal of surface at intersection
-    glm::dvec3 I = glm::normalize(r.getDirection()); // normalize/points towards the scene
+    glm::dvec3 norm = glm::normalize(i.getN()); // normal of surface at intersection
+    glm::dvec3 curr_ray = glm::normalize(r.getDirection()); // normalize/points towards the scene
     glm::dvec3 kr = m.kr(i);
     glm::dvec3 kt = m.kt(i);
     double kr_mag = glm::length(kr);
@@ -113,10 +114,10 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
     // do reflection: check material's reflective constant
     if (kr_mag > 0.0) {
-      glm::dvec3 R = glm::reflect(I, N); // direction of reflection -> towards view
-      glm::dvec3 reflectedOrigin = intersect + RAY_EPSILON * R;
+      glm::dvec3 reflect_ray = glm::reflect(curr_ray, norm); // direction of reflection -> towards view
+      glm::dvec3 reflectedOrigin = intersect + RAY_EPSILON * reflect_ray;
       glm::dvec3 reflectedWeight = r.getAtten() * kr;
-      ray reflectionRay(reflectedOrigin, R, reflectedWeight, ray::REFLECTION);
+      ray reflectionRay(reflectedOrigin, reflect_ray, reflectedWeight, ray::REFLECTION);
       double t_reflect; // placeholder for traceRay function
       colorC += kr * traceRay(reflectionRay, thresh * kr, depth - 1, t_reflect);
     }
@@ -125,10 +126,10 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     if (kt_mag > 0.0) {
       double n_i; // current refraction index
       double n_t; // next index
-      glm::dvec3 N_copy = N;
+      glm::dvec3 norm_copy = norm;
 
-      // entering object- since I is pointing towards view
-      if (glm::dot(I, N) < 0.0) {
+      // entering object- since curr_ray is pointing towards view
+      if (glm::dot(curr_ray, n) < 0.0) {
         n_i = 1.0; // index of air
         n_t = ior; // material of object
       } 
@@ -136,7 +137,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
       else {
         n_i = ior; // material
         n_t = 1.0; // air
-        N_copy = -N; // point normal back into object
+        norm_copy = -norm; // point normal back into object
       }
 
       // snell's law
@@ -144,12 +145,12 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
       double cosi;
       double cost; 
 
-      if (notTIR(I, N_copy, n_i, n_t, n_r, cosi, cost)) {
-        // glm::dvec3 T = (n_r * cosi - sqrt(cost)) * N_copy - (n_r * I);
-        glm::dvec3 T = (n_r * I) - ((n_r * cosi + sqrt(cost)) * N_copy);
-        glm::dvec3 refractedOrigin = intersect + RAY_EPSILON * T;
+      if (notTIR(curr_ray, norm_copy, n_i, n_t, n_r, cosi, cost)) {
+        // glm::dvec3 T = (n_r * cosi - sqrt(cost)) * N_copy - (n_r * curr_ray);
+        glm::dvec3 refract_ray = (n_r * curr_ray) - ((n_r * cosi + sqrt(cost)) * norm_copy);
+        glm::dvec3 refractedOrigin = intersect + RAY_EPSILON * refract_ray;
         glm::dvec3 refractedWeight = r.getAtten() * kt;
-        ray refractionRay(refractedOrigin, T, refractedWeight, ray::REFRACTION);
+        ray refractionRay(refractedOrigin, refract_ray, refractedWeight, ray::REFRACTION);
         double t_refract; // placeholder for traceRay function
         colorC += kt * traceRay(refractionRay, thresh * kt, depth - 1, t_refract);
       }
@@ -166,7 +167,12 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     //       Check traceUI->cubeMap() to see if cubeMap is loaded
     //       and enabled.
 
-    colorC = glm::dvec3(0.0, 0.0, 0.0);
+    if (traceUI->cubeMap()) {
+      glm::dvec3 dir = glm::normaliza(r.getDirection());
+      colorC = traceUI->getCubeMap()->getColor(dir);
+    } else {
+      colorC = glm::dvec3(0.0, 0.0, 0.0);
+    }
   }
 #if VERBOSE
   std::cerr << "== depth: " << depth + 1 << " done, returning: " << colorC
@@ -175,10 +181,10 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
   return colorC;
 }
 
-bool RayTracer::notTIR(const glm::dvec3& I, const glm::dvec3& N, double n_i, double n_t,
+bool RayTracer::notTIR(const glm::dvec3& curr_ray, const glm::dvec3& norm, double n_i, double n_t,
     double& n_r, double& cosi, double& cost) {
     n_r = n_i / n_t;
-    cosi = glm::dot(I, N);
+    cosi = glm::dot(curr_ray, norm);
     cost = 1.0 - n_r * n_r * (1.0 - cosi * cosi);
     return cost >= 0.0; 
 }

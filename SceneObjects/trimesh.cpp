@@ -96,6 +96,13 @@ bool TrimeshFace::intersectLocal(ray &r, isect &i) const {
      - If neither is true, assign the parent's material to the intersection.
   */
 
+  // triangle vertices
+  const glm::dvec3 a = parent->vertices[id[0]];
+  const glm::dvec3 b = parent->vertices[id[1]];
+  const glm::dvec3 C = parent->vertices[id[2]];
+
+  // point and direction
+  glm::dvec3 ab = b - a;
   i.setObject(this->parent);
   return false;
 }

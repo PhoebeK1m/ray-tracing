@@ -45,7 +45,7 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
   glm::dvec3 intersect = r.at(i.getT());
   glm::dvec3 N = glm::normalize(i.getN());
   glm::dvec3 viewDir = glm::normalize(-r.getDirection());
-  glm::dvec3 I = ke(i) + ka(i) * scene->ambient();
+  glm::dvec3 I = ke(i) + ka(i) * scene->ambient(); // phong illumination model
 
   for ( const auto& pLight : scene->getAllLights() ) {
     glm::dvec3 lightDir = glm::normalize(pLight->getDirection(intersect));
