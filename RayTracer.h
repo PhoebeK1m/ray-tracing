@@ -32,6 +32,11 @@ public:
   glm::dvec3 tracePixel(int i, int j);
   glm::dvec3 traceRay(ray &r, const glm::dvec3 &thresh, int depth,
                       double &length);
+  
+  bool notTIR(const glm::dvec3& I, const glm::dvec3& N,
+              double n_i, double n_t,
+              double& n_r, double& cosi, double& cost);
+
 
   glm::dvec3 getPixel(int i, int j);
   void setPixel(int i, int j, glm::dvec3 color);

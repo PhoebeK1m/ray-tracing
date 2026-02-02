@@ -17,7 +17,6 @@ Material::~Material() {}
 // the color of that point.
 glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
   // YOUR CODE HERE
-
   // For now, this method just returns the diffuse color of the object.
   // This gives a single matte color for every distinct surface in the
   // scene, and that's it.  Simple, but enough to get you started.
@@ -42,7 +41,38 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
   // 		.
   // 		.
   // }
-  return kd(i);
+
+  glm::dvec3 intersect = r.at(i.getT());
+  glm::dvec3 N = glm::normalize(i.getN());
+  glm::dvec3 viewDir = glm::normalize(-r.getDirection());
+  glm::dvec3 I = ke(i) + ka(i) * scene->ambient();
+
+  for ( const auto& pLight : scene->getAllLights() ) {
+    glm::dvec3 lightDir = glm::normalize(pLight->getDirection(intersect));
+    
+    double distanceAttenuation = pLight->distanceAttenuation(intersect);
+    ray shadowRay(intersect, lightDir, glm::dvec3(1.0), ray::SHADOW);
+    glm::dvec3 shadowAttenuation = pLight->shadowAttenuation(shadowRay, intersect);
+    glm::dvec3 attenuation = distanceAttenuation * shadowAttenuation;
+
+    double lightFacing = glm::dot(N, lightDir);
+    if (lightFacing > 0.0) {
+      //diffuse term
+      glm::dvec3 diffuse = kd(i) * lightFacing * pLight->getColor();
+
+      //specular term
+      glm::dvec3 R = glm::reflect(-lightDir, N);
+      double specAngle = glm::dot(glm::normalize(R), viewDir);
+
+      glm::dvec3 specular(0.0);
+      if (specAngle > 0.0) {
+        specular = ks(i) * pow(specAngle, shininess(i))* pLight->getColor();
+      }
+
+      I += attenuation * (diffuse + specular);
+    }
+  }
+  return I;
 }
 
 TextureMap::TextureMap(string filename) {

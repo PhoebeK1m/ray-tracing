@@ -75,14 +75,18 @@ glm::dvec3 RayTracer::tracePixel(int i, int j) {
 glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
                                double &t) {
   isect i;
-  glm::dvec3 colorC;
+  glm::dvec3 colorC(0.0);
 #if VERBOSE
   std::cerr << "== current depth: " << depth << std::endl;
 #endif
 
+    // stop recursing!! when depth reached or threshold intensity...
+    if (depth <= 0 || glm::length(thresh) < traceUI->getThreshold()) {
+      return colorC;
+    }
+
   if (scene->intersect(r, i)) {
     // YOUR CODE HERE
-
     // An intersection occurred!  We've got work to do. For now, this code gets
     // the material for the surface that was intersected, and asks that material
     // to provide a color for the ray.
@@ -91,8 +95,66 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     // of just returning the result of shade(), add some more steps: add in the
     // contributions from reflected and refracted rays.
 
+    // getting t, N, mtrl from i
+
     const Material &m = i.getMaterial();
     colorC = m.shade(scene.get(), r, i);
+
+    glm::dvec3 intersect = r.at(i.getT()); // distance to first intersection aka first object, t in pseudo
+    t = i.getT();
+    glm::dvec3 N = glm::normalize(i.getN()); // normal of surface at intersection
+    glm::dvec3 I = glm::normalize(r.getDirection()); // points towards the view
+    glm::dvec3 kr = m.kr(i);
+    glm::dvec3 kt = m.kt(i);
+    double kr_mag = glm::length(kr);
+    double kt_mag = glm::length(kt);
+    double ior = m.index(i);
+
+
+    // do reflection: check material's reflective constant
+    if (kr_mag > 0.0) {
+      glm::dvec3 R = glm::reflect(I, N); // direction of reflection
+      glm::dvec3 reflectedOrigin = intersect + RAY_EPSILON * R;
+      glm::dvec3 reflectedWeight = r.getAtten() * kr;
+      ray reflectionRay(reflectedOrigin, R, reflectedWeight, ray::REFLECTION);
+      double t_reflect; // placeholder for traceRay function
+      colorC += kr * traceRay(reflectionRay, thresh * kr, depth - 1, t_reflect);
+    }
+
+    // do refraction: check material's refractive constant
+    if (kt_mag > 0.0) {
+      double n_i; // current refraction index
+      double n_t; // next index
+      glm::dvec3 N_copy = N;
+
+      // entering object- since I is pointing towards view
+      if (glm::dot(I, N) < 0.0) {
+        n_i = 1.0; // index of air
+        n_t = ior; // material of object
+      } 
+      //exiting object
+      else {
+        n_i = ior; // material
+        n_t = 1.0; // air
+        N_copy = -N; // point normal back into object
+      }
+
+      // snell's law
+      double n_r; // ratio of refraction, n_r
+      double cosi;
+      double cost; 
+
+      if (notTIR(I, N_copy, n_i, n_t, n_r, cosi, cost)) {
+        // glm::dvec3 T = (n_r * cosi - sqrt(cost)) * N_copy - (n_r * I);
+        glm::dvec3 T = (n_r * I) - ((n_r * cosi + sqrt(cost)) * N_copy);
+        glm::dvec3 refractedOrigin = intersect + RAY_EPSILON * T;
+        glm::dvec3 refractedWeight = r.getAtten() * kt;
+        ray refractionRay(refractedOrigin, T, refractedWeight, ray::REFRACTION);
+        double t_refract; // placeholder for traceRay function
+        colorC += kt * traceRay(refractionRay, thresh * kt, depth - 1, t_refract);
+      }
+    }
+
   } else {
     // No intersection. This ray travels to infinity, so we color
     // it according to the background color, which in this (simple)
@@ -111,6 +173,14 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
             << std::endl;
 #endif
   return colorC;
+}
+
+bool RayTracer::notTIR(const glm::dvec3& I, const glm::dvec3& N, double n_i, double n_t,
+    double& n_r, double& cosi, double& cost) {
+    n_r = n_i / n_t;
+    cosi = glm::dot(I, N);
+    cost = 1.0 - n_r * n_r * (1.0 - cosi * cosi);
+    return cost >= 0.0; 
 }
 
 RayTracer::RayTracer()
@@ -244,6 +314,11 @@ void RayTracer::traceImage(int w, int h) {
   //
   //       An asynchronous traceImage lets the GUI update your results
   //       while rendering.
+  for (int j = 0; j < buffer_height; j++) {
+    for (int i = 0; i < buffer_width; i++) {
+      tracePixel(i, j);
+    }
+  }
 }
 
 int RayTracer::aaImage() {
