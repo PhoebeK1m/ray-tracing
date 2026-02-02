@@ -103,7 +103,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     glm::dvec3 intersect = r.at(i.getT()); // distance to first intersection aka first object, t in pseudo
     t = i.getT();
     glm::dvec3 N = glm::normalize(i.getN()); // normal of surface at intersection
-    glm::dvec3 I = glm::normalize(r.getDirection()); // points towards the view
+    glm::dvec3 I = glm::normalize(r.getDirection()); // normalize/points towards the scene
     glm::dvec3 kr = m.kr(i);
     glm::dvec3 kt = m.kt(i);
     double kr_mag = glm::length(kr);
@@ -113,7 +113,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
 
     // do reflection: check material's reflective constant
     if (kr_mag > 0.0) {
-      glm::dvec3 R = glm::reflect(I, N); // direction of reflection
+      glm::dvec3 R = glm::reflect(I, N); // direction of reflection -> towards view
       glm::dvec3 reflectedOrigin = intersect + RAY_EPSILON * R;
       glm::dvec3 reflectedWeight = r.getAtten() * kr;
       ray reflectionRay(reflectedOrigin, R, reflectedWeight, ray::REFLECTION);

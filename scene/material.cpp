@@ -51,7 +51,7 @@ glm::dvec3 Material::shade(Scene *scene, const ray &r, const isect &i) const {
     glm::dvec3 lightDir = glm::normalize(pLight->getDirection(intersect));
     
     double distanceAttenuation = pLight->distanceAttenuation(intersect);
-    ray shadowRay(intersect, lightDir, glm::dvec3(1.0), ray::SHADOW);
+    ray shadowRay(intersect, lightDir, glm::dvec3(1, 1, 1), ray::SHADOW);
     glm::dvec3 shadowAttenuation = pLight->shadowAttenuation(shadowRay, intersect);
     glm::dvec3 attenuation = distanceAttenuation * shadowAttenuation;
 
