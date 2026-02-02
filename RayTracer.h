@@ -1,10 +1,10 @@
 #ifndef __RAYTRACER_H__
 #define __RAYTRACER_H__
 
+#define GLM_ENABLE_EXPERIMENTAL
 #define MAX_THREADS 32
 
 // The main ray tracer.
-
 #include "scene/cubeMap.h"
 #include "scene/ray.h"
 #include <glm/vec3.hpp>

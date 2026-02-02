@@ -4,8 +4,8 @@
     See JsonParser.{cpp,h} for the new parsing code. **/
 
 #ifndef __PARSER_H__
-
 #define __PARSER_H__
+#define GLM_ENABLE_EXPERIMENTAL
 
 #include <map>
 #include <string>

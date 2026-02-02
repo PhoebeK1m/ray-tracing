@@ -30,6 +30,8 @@ ENDIF(NOT src)
 
 add_executable(ray ${src})
 
+target_compile_definitions(ray PRIVATE GLM_ENABLE_EXPERIMENTAL)
+
 message(STATUS "ray added, files ${src}")
 
 target_link_libraries(ray ${OPENGL_gl_LIBRARY})
