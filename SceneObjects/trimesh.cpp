@@ -96,13 +96,46 @@ bool TrimeshFace::intersectLocal(ray &r, isect &i) const {
      - If neither is true, assign the parent's material to the intersection.
   */
 
-  // triangle vertices
-  const glm::dvec3 a = parent->vertices[id[0]];
-  const glm::dvec3 b = parent->vertices[id[1]];
-  const glm::dvec3 C = parent->vertices[id[2]];
+  // point and direction-> need to find t
+  // Q = P + dt
+  glm::dvec3 p = r.getPosition();
+  glm::dvec3 d = r.getDirection();
 
-  // point and direction
+  // triangle vertices
+  glm::dvec3 a = parent->vertices[id[0]];
+  glm::dvec3 b = parent->vertices[id[1]];
+  glm::dvec3 C = parent->vertices[id[2]];
+
+  // triangle edges going counterclockwise
   glm::dvec3 ab = b - a;
+  glm::dvec3 bc = b - c;
+  glm::dvec3 ca = a - c;
+
+  // triangel norm normalized
+  glm::dvec3 norm = glm::normalize(glm::cross(ab, cb));
+
+  // check that the ray isn't parallel to the triangel plane
+  if (glm::dot(norm, d)){
+    return false;
+  }
+
+  // check that t is negative
+
+  // inside-outside test
+  // TODO: find Q and replace p w/ Q below
+  // i went ahead of myself will fix if anyone is reading this
+  // glm::dvec3 abpa = glm::cross(ab, p - a);
+  // glm::dvec3 bcpb = glm::cross(bc, p - b);
+  // glm::dvec3 capc = glm::cross(ca, p - c);
+
+  // bool out = (glm::dot(abpa, norm) < RAY_EPSILON) 
+  //           || (glm::dot(bcpb, norm) < RAY_EPSILON)
+  //           || (glm::dot(capc, norm) < RAY_EPSILON);
+  // if (out) {
+  //   return false;
+  // }
+
+
   i.setObject(this->parent);
   return false;
 }
