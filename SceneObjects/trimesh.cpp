@@ -106,38 +106,74 @@ bool TrimeshFace::intersectLocal(ray &r, isect &i) const {
   glm::dvec3 b = parent->vertices[ids[1]];
   glm::dvec3 c = parent->vertices[ids[2]];
 
-  // triangle edges going counterclockwise
-  glm::dvec3 ab = b - a;
-  glm::dvec3 bc = b - c;
-  glm::dvec3 ca = a - c;
+  // triangel norm
+  glm::dvec3 norm = glm::cross(b - a, c - a);
 
-  // triangel norm normalized
-  glm::dvec3 norm = glm::normalize(glm::cross(ab, bc));
-
-  // check that the ray isn't parallel to the triangel plane
-  if (glm::dot(norm, d)){
+  // given ray could be parallel -> dot product with norm is 0
+  // N*D -> also shouldn't divide by zero
+  double normdir = glm::dot(norm, d);
+  if (fabs(normdir) < RAY_EPSILON){
     return false;
   }
 
-  // check that t is negative
+  // t = -N*P+d / N*D
+  // d = -N*a (a is any known point on the plane)
+  // t = -(N*P-N*a) / N*D = N*(a-P)/N*D
+  double t = glm::dot(norm, a - p) / normdir;
 
-  // inside-outside test
-  // TODO: find Q and replace p w/ Q below
-  // i went ahead of myself will fix if anyone is reading this
-  // glm::dvec3 abpa = glm::cross(ab, p - a);
-  // glm::dvec3 bcpb = glm::cross(bc, p - b);
-  // glm::dvec3 capc = glm::cross(ca, p - c);
+  // check that point is in front of camera
+  if (t < RAY_EPSILON) {
+    return false;
+  }
+  glm::dvec3 q = p + (d * t); // intersection point on the plane containing tirangle
 
-  // bool out = (glm::dot(abpa, norm) < RAY_EPSILON) 
-  //           || (glm::dot(bcpb, norm) < RAY_EPSILON)
-  //           || (glm::dot(capc, norm) < RAY_EPSILON);
-  // if (out) {
-  //   return false;
-  // }
+  // barycentric coords
+  double total_area = 0.5 * glm::length(norm);
+  if (total_area < RAY_EPSILON) { // can't divide by 0 also that means the triangle is a line
+    return false;
+  }
 
+  // labeling these off the lecture slide image
+  double alpha = (0.5 * glm::length(glm::cross(c - b, q - b))) / total_area;
+  double beta = (0.5 * glm::length(glm::cross(a - c, q - c))) / total_area;
+  double gamma = (0.5 * glm::length(glm::cross(b - a, q - a))) / total_area;
 
+  // check if q is in triangle
+  if (alpha < -RAY_EPSILON || beta < -RAY_EPSILON  || gamma < -RAY_EPSILON ) {
+    return false;
+  }
+  if (fabs(alpha + beta + gamma - 1.0) > RAY_EPSILON) {
+    return false;
+  }
+
+  i.setT(t);
+  i.setN(glm::normalize(norm));
   i.setObject(this->parent);
-  return false;
+
+  // barycentrically interpolating
+
+  // case 1: nonempty uv-coords
+  if (!parent->uvCoords.empty()) {
+    glm::dvec2 uv = (alpha * parent->uvCoords[ids[0]]) + (beta * parent->uvCoords[ids[1]]) 
+                    + gamma * parent->uvCoords[ids[2]];
+    i.setUVCoordinates(uv);
+    i.setMaterial(parent->material);
+  }
+  // case 2: nonempty vertex colors
+  else if (!parent->vertColors.empty()) {
+    glm::dvec3 color = (alpha * parent->vertColors[ids[0]]) + (beta * parent->vertColors[ids[1]]) 
+                    + gamma * parent->vertColors[ids[2]];
+    // copy parent's material, set diffuse color of this material to the interpolated color
+    Material m = parent->material;
+    m.setDiffuse(color);
+    i.setMaterial(m);
+  }
+  // case 3: neither
+  else {
+    i.setMaterial(parent->material);
+  }
+
+  return true;
 }
 
 // Once all the verts and faces are loaded, per vertex normals can be

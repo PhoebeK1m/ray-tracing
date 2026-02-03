@@ -141,12 +141,11 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
       }
 
       // snell's law
-      double n_r; // ratio of refraction, n_r
+      double n_r; // ratio of refraction
       double cosi;
       double cost; 
 
       if (notTIR(curr_ray, norm_copy, n_i, n_t, n_r, cosi, cost)) {
-        // glm::dvec3 T = (n_r * cosi - sqrt(cost)) * N_copy - (n_r * curr_ray);
         glm::dvec3 refract_ray = (n_r * curr_ray) - ((n_r * cosi + sqrt(cost)) * norm_copy);
         glm::dvec3 refractedOrigin = intersect + RAY_EPSILON * refract_ray;
         glm::dvec3 refractedWeight = r.getAtten() * kt;
