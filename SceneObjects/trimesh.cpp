@@ -102,9 +102,9 @@ bool TrimeshFace::intersectLocal(ray &r, isect &i) const {
   glm::dvec3 d = r.getDirection();
 
   // triangle vertices
-  glm::dvec3 a = parent->vertices[id[0]];
-  glm::dvec3 b = parent->vertices[id[1]];
-  glm::dvec3 C = parent->vertices[id[2]];
+  glm::dvec3 a = parent->vertices[ids[0]];
+  glm::dvec3 b = parent->vertices[ids[1]];
+  glm::dvec3 c = parent->vertices[ids[2]];
 
   // triangle edges going counterclockwise
   glm::dvec3 ab = b - a;
@@ -112,7 +112,7 @@ bool TrimeshFace::intersectLocal(ray &r, isect &i) const {
   glm::dvec3 ca = a - c;
 
   // triangel norm normalized
-  glm::dvec3 norm = glm::normalize(glm::cross(ab, cb));
+  glm::dvec3 norm = glm::normalize(glm::cross(ab, bc));
 
   // check that the ray isn't parallel to the triangel plane
   if (glm::dot(norm, d)){

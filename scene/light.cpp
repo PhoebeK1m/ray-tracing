@@ -43,7 +43,7 @@ double PointLight::distanceAttenuation(const glm::dvec3 &P) const {
   double dist = glm::length(position - P);
 
   // f(d) = min( 1, 1/( a + b d + c d^2 ) )
-  double denom = 1.0 / (constantTerm + (linearTerm * dist) + (quadraticTerm * dist *dist));
+  double denom = constantTerm + (linearTerm * dist) + (quadraticTerm * dist *dist);
 
   if (denom > 0) {
     double distAtten = 1.0/denom;

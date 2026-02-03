@@ -129,7 +129,7 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
       glm::dvec3 norm_copy = norm;
 
       // entering object- since curr_ray is pointing towards view
-      if (glm::dot(curr_ray, n) < 0.0) {
+      if (glm::dot(curr_ray, norm) < 0.0) {
         n_i = 1.0; // index of air
         n_t = ior; // material of object
       } 
@@ -168,8 +168,8 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     //       and enabled.
 
     if (traceUI->cubeMap()) {
-      glm::dvec3 dir = glm::normaliza(r.getDirection());
-      colorC = traceUI->getCubeMap()->getColor(dir);
+      glm::dvec3 dir = glm::normalize(r.getDirection());
+      // colorC = traceUI->getCubeMap()->getColor(dir);
     } else {
       colorC = glm::dvec3(0.0, 0.0, 0.0);
     }
