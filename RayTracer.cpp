@@ -167,8 +167,8 @@ glm::dvec3 RayTracer::traceRay(ray &r, const glm::dvec3 &thresh, int depth,
     //       and enabled.
 
     if (traceUI->cubeMap()) {
-      glm::dvec3 dir = glm::normalize(r.getDirection());
-      // colorC = traceUI->getCubeMap()->getColor(dir);
+      // ray direction is normalized inside getColor function
+      colorC = traceUI->getCubeMap()->getColor(r);
     } else {
       colorC = glm::dvec3(0.0, 0.0, 0.0);
     }
